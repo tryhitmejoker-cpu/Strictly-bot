@@ -10,7 +10,8 @@ import os
 TOKEN = os.getenv("BOT_TOKEN")
 
 SUPPORT_URL = "https://t.me/StricklySupportbot"
-BANNER_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
+HOME_IMAGE = "D2C62FE2-483E-4CF2-B7B9-28518D74785D.png"
+BUY_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
 
 
 def home_menu():
@@ -23,7 +24,7 @@ def home_menu():
 
 def product_menu():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("Pay by Card", url="https://buy.stripe.com/aFadR2diP8qV67D5HY4gg0D")],
+        [InlineKeyboardButton("Unlock Full Access (£15)", url="https://buy.stripe.com/aFadR2diP8qV67D5HY4gg0D")],
         [InlineKeyboardButton("Back", callback_data="back_home")],
     ])
 
@@ -51,14 +52,20 @@ Tap below to continue."""
 def get_buy_caption():
     return """Strickly VIP
 
-Private network access.
+Unlock full access to all 10 VIP channels.
 
-19 members joined today.
+27 members joined in the last 24 hours.
 
-• £15.00 access
-• Secure card checkout
+What you get:
+• Private VIP network access
+• Daily updates & drops
+• Exclusive content
 
-Choose payment below."""
+Price: £15.00 (one-time)
+
+Instant access delivered after payment.
+
+Tap below to unlock access."""
 
 
 PREVIEW_TEXT = """Previews
@@ -67,7 +74,7 @@ Add screenshots, proof, or sample content here."""
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    with open(BANNER_IMAGE, "rb") as photo:
+    with open(HOME_IMAGE, "rb") as photo:
         await update.message.reply_photo(
             photo=photo,
             caption=get_home_caption(),
@@ -85,7 +92,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-        with open(BANNER_IMAGE, "rb") as photo:
+        with open(BUY_IMAGE, "rb") as photo:
             await query.message.chat.send_photo(
                 photo=photo,
                 caption=get_buy_caption(),
@@ -110,7 +117,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-        with open(BANNER_IMAGE, "rb") as photo:
+        with open(HOME_IMAGE, "rb") as photo:
             await query.message.chat.send_photo(
                 photo=photo,
                 caption=get_home_caption(),
