@@ -10,6 +10,8 @@ import os
 TOKEN = os.getenv("BOT_TOKEN")
 
 SUPPORT_URL = "https://t.me/StricklySupportbot"
+PREVIEWS_URL = "https://t.me/+EM4JGufTMKE2OWRk"
+
 HOME_IMAGE = "D2C62FE2-483E-4CF2-B7B9-28518D74785D.png"
 BUY_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
 
@@ -17,8 +19,8 @@ BUY_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
 def home_menu():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("Buy Now", callback_data="buy_now")],
-        [InlineKeyboardButton("View Previews", callback_data="previews")],
-        [InlineKeyboardButton("Support", callback_data="support")],
+        [InlineKeyboardButton("View Previews", url=PREVIEWS_URL)],
+        [InlineKeyboardButton("Support", url=SUPPORT_URL)],
     ])
 
 
@@ -26,12 +28,6 @@ def product_menu():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("Unlock Full Access (£15)", url="https://buy.stripe.com/aFadR2diP8qV67D5HY4gg0D")],
         [InlineKeyboardButton("Back", callback_data="back_home")],
-    ])
-
-
-def back_menu():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("Back", callback_data="back_home")]
     ])
 
 
@@ -68,17 +64,6 @@ Instant access delivered after payment.
 Tap below to unlock access."""
 
 
-PREVIEW_TEXT = """Previews
-
-Add screenshots, proof, or sample content here."""
-
-
-SUPPORT_TEXT = f"""Support
-
-Message support here:
-{SUPPORT_URL}"""
-
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with open(HOME_IMAGE, "rb") as photo:
         await update.message.reply_photo(
@@ -103,30 +88,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 photo=photo,
                 caption=get_buy_caption(),
                 reply_markup=product_menu(),
-            )
-
-    elif query.data == "previews":
-        try:
-            await query.edit_message_caption(
-                caption=PREVIEW_TEXT,
-                reply_markup=back_menu(),
-            )
-        except Exception:
-            await query.message.reply_text(
-                text=PREVIEW_TEXT,
-                reply_markup=back_menu(),
-            )
-
-    elif query.data == "support":
-        try:
-            await query.edit_message_caption(
-                caption=SUPPORT_TEXT,
-                reply_markup=back_menu(),
-            )
-        except Exception:
-            await query.message.reply_text(
-                text=SUPPORT_TEXT,
-                reply_markup=back_menu(),
             )
 
     elif query.data == "back_home":
