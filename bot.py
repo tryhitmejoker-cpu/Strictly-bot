@@ -6,6 +6,7 @@ from telegram.ext import (
     ContextTypes,
 )
 import os
+import random
 
 TOKEN = os.getenv("BOT_TOKEN")
 
@@ -15,19 +16,29 @@ SUPPORT_URL = "https://t.me/yourusername"
 BANNER_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
 
 
+def get_fake_activity():
+    messages = [
+        "🔥 Someone just joined",
+        "⚡ New member unlocked access",
+        "👑 VIP access purchased",
+        "🚀 Another user joined",
+    ]
+    return random.choice(messages)
+
+
 def home_menu():
     keyboard = [
-        [InlineKeyboardButton("🛍 Buy Now", callback_data="buy_now")],
-        [InlineKeyboardButton("👀 Previews", callback_data="previews")],
-        [InlineKeyboardButton("💬 Support", url=SUPPORT_URL)],
+        [InlineKeyboardButton("🔥 Unlock Access", callback_data="buy_now")],
+        [InlineKeyboardButton("👀 View Previews", callback_data="previews")],
+        [InlineKeyboardButton("💬 Contact Support", url=SUPPORT_URL)],
     ]
     return InlineKeyboardMarkup(keyboard)
 
 
 def product_menu():
     keyboard = [
-        [InlineKeyboardButton("💳 Pay by Card", url=STRIPE_URL)],
-        [InlineKeyboardButton("₿ Pay by Crypto", url=CRYPTO_URL)],
+        [InlineKeyboardButton("💳 Buy Access (Card)", url=STRIPE_URL)],
+        [InlineKeyboardButton("₿ Buy Access (Crypto)", url=CRYPTO_URL)],
         [InlineKeyboardButton("← Back", callback_data="back_home")],
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -40,26 +51,66 @@ def back_menu():
     return InlineKeyboardMarkup(keyboard)
 
 
-HOME_TEXT = """Welcome to Strickly VIP
+def get_home_caption():
+    return f"""🚨 LIMITED ACCESS 🚨
 
-Private access with instant delivery.
+👑 Strickly VIP
 
-• Card & crypto accepted
-• Secure checkout
-• Instant access
+Exclusive private network access.
 
-Choose an option below."""
+🔥 19 members joined today — limited spots remaining
+{get_fake_activity()}
 
-PREVIEW_TEXT = """Previews
+━━━━━━━━━━━━━━━
 
-Add screenshots, proof, or sample content here."""
+💳 Card & crypto accepted
+⚡ Instant access after payment
+🔒 Fully secure & private
+
+━━━━━━━━━━━━━━━
+
+Tap below to unlock access."""
+
+
+def get_buy_caption():
+    return """👑 Strickly VIP
+
+Exclusive private network access.
+
+🔥 19 members joined today — limited spots remaining
+
+━━━━━━━━━━━━━━━
+
+💳 Instant card checkout
+₿ Crypto accepted
+⚡ Access delivered after payment
+
+━━━━━━━━━━━━━━━
+
+Choose your payment method below."""
+
+
+PREVIEW_TEXT = """👀 VIP Previews
+
+See what members get access to:
+
+• Premium content
+• Private channels
+• Daily updates
+• Exclusive drops
+
+━━━━━━━━━━━━━━━
+
+Upgrade to unlock full access."""
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        text=HOME_TEXT,
-        reply_markup=home_menu()
-    )
+    with open(BANNER_IMAGE, "rb") as photo:
+        await update.message.reply_photo(
+            photo=photo,
+            caption=get_home_caption(),
+            reply_markup=home_menu()
+        )
 
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -67,25 +118,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     if query.data == "buy_now":
-        await query.message.delete()
-        with open(BANNER_IMAGE, "rb") as photo_file:
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+
+        with open(BANNER_IMAGE, "rb") as photo:
             await query.message.chat.send_photo(
-                photo=photo_file,
-                caption="""Strickly VIP
-
-Private access with instant delivery.
-
-• Secure checkout
-• Instant access
-• Card & crypto accepted
-
-Choose payment below.""",
+                photo=photo,
+                caption=get_buy_caption(),
                 reply_markup=product_menu()
             )
 
     elif query.data == "previews":
-        await query.edit_message_text(
-            text=PREVIEW_TEXT,
+        await query.edit_message_caption(
+            caption=PREVIEW_TEXT,
             reply_markup=back_menu()
         )
 
@@ -95,10 +142,12 @@ Choose payment below.""",
         except Exception:
             pass
 
-        await query.message.chat.send_message(
-            text=HOME_TEXT,
-            reply_markup=home_menu()
-        )
+        with open(BANNER_IMAGE, "rb") as photo:
+            await query.message.chat.send_photo(
+                photo=photo,
+                caption=get_home_caption(),
+                reply_markup=home_menu()
+            )
 
 
 def main():
