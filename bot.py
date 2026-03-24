@@ -177,7 +177,7 @@ def run_bot():
     telegram_app = ApplicationBuilder().token(TOKEN).build()
     telegram_app.add_handler(CommandHandler("start", start))
     telegram_app.add_handler(CallbackQueryHandler(button_handler))
-    telegram_app.run_polling()
+    telegram_app.run_polling(close_loop=False)
 
 
 # ========= WEBHOOK =========
