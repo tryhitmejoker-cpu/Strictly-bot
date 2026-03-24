@@ -32,9 +32,7 @@ def product_menu():
 
 
 def get_home_caption():
-    return """Strickly VIP
-
-Private network access.
+    return """Private network access.
 
 Unlock access to all 10 VIP channels.
 
