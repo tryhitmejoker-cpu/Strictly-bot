@@ -1,4 +1,5 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity
+from telegram.constants import MessageEntityType
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -32,7 +33,9 @@ def product_menu():
 
 
 def get_home_caption():
-    return """Strickly VIP
+    return """🥳🥳😣☹️☹️😭😏🤩
+
+Strickly VIP
 
 Private network access.
 
@@ -43,6 +46,59 @@ Private network access.
 • Card accepted
 
 Tap below to continue."""
+
+
+def get_home_caption_entities():
+    return [
+        MessageEntity(
+            type=MessageEntityType.CUSTOM_EMOJI,
+            offset=0,
+            length=2,
+            custom_emoji_id="6244620201975879160",
+        ),
+        MessageEntity(
+            type=MessageEntityType.CUSTOM_EMOJI,
+            offset=2,
+            length=2,
+            custom_emoji_id="6242377370053906003",
+        ),
+        MessageEntity(
+            type=MessageEntityType.CUSTOM_EMOJI,
+            offset=4,
+            length=2,
+            custom_emoji_id="6244711710549086048",
+        ),
+        MessageEntity(
+            type=MessageEntityType.CUSTOM_EMOJI,
+            offset=6,
+            length=2,
+            custom_emoji_id="6242164721928113850",
+        ),
+        MessageEntity(
+            type=MessageEntityType.CUSTOM_EMOJI,
+            offset=8,
+            length=2,
+            custom_emoji_id="6244468967587450938",
+        ),
+        MessageEntity(
+            type=MessageEntityType.CUSTOM_EMOJI,
+            offset=10,
+            length=2,
+            custom_emoji_id="6242193343590174906",
+        ),
+        MessageEntity(
+            type=MessageEntityType.CUSTOM_EMOJI,
+            offset=12,
+            length=2,
+            custom_emoji_id="6242414534405918696",
+        ),
+        MessageEntity(
+            type=MessageEntityType.CUSTOM_EMOJI,
+            offset=14,
+            length=2,
+            custom_emoji_id="6242356144325528828",
+        ),
+    ]
 
 
 def get_buy_caption():
@@ -69,6 +125,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_photo(
             photo=photo,
             caption=get_home_caption(),
+            caption_entities=get_home_caption_entities(),
             reply_markup=home_menu(),
         )
 
@@ -100,6 +157,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.chat.send_photo(
                 photo=photo,
                 caption=get_home_caption(),
+                caption_entities=get_home_caption_entities(),
                 reply_markup=home_menu(),
             )
 
