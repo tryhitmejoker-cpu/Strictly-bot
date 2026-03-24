@@ -16,9 +16,9 @@ BUY_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
 
 def home_menu():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("Continue", callback_data="buy_now")],
-        [InlineKeyboardButton("View previews", callback_data="previews")],
-        [InlineKeyboardButton("Support", url=SUPPORT_URL)],
+        [InlineKeyboardButton("Buy Now", callback_data="buy_now")],
+        [InlineKeyboardButton("View Previews", callback_data="previews")],
+        [InlineKeyboardButton("Support", callback_data="support")],
     ])
 
 
@@ -73,6 +73,12 @@ PREVIEW_TEXT = """Previews
 Add screenshots, proof, or sample content here."""
 
 
+SUPPORT_TEXT = f"""Support
+
+Message support here:
+{SUPPORT_URL}"""
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with open(HOME_IMAGE, "rb") as photo:
         await update.message.reply_photo(
@@ -108,6 +114,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             await query.message.reply_text(
                 text=PREVIEW_TEXT,
+                reply_markup=back_menu(),
+            )
+
+    elif query.data == "support":
+        try:
+            await query.edit_message_caption(
+                caption=SUPPORT_TEXT,
+                reply_markup=back_menu(),
+            )
+        except Exception:
+            await query.message.reply_text(
+                text=SUPPORT_TEXT,
                 reply_markup=back_menu(),
             )
 
