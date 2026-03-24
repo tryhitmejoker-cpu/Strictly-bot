@@ -33,7 +33,7 @@ def product_menu():
 
 
 def get_home_caption():
-    return """🥳🥳😣☹️☹️😭😏🤩
+    return """XXXXXXXX
 
 Strickly VIP
 
@@ -53,49 +53,49 @@ def get_home_caption_entities():
         MessageEntity(
             type=MessageEntityType.CUSTOM_EMOJI,
             offset=0,
-            length=2,
+            length=1,
             custom_emoji_id="6244620201975879160",
         ),
         MessageEntity(
             type=MessageEntityType.CUSTOM_EMOJI,
-            offset=2,
-            length=2,
+            offset=1,
+            length=1,
             custom_emoji_id="6242377370053906003",
         ),
         MessageEntity(
             type=MessageEntityType.CUSTOM_EMOJI,
-            offset=4,
-            length=2,
+            offset=2,
+            length=1,
             custom_emoji_id="6244711710549086048",
         ),
         MessageEntity(
             type=MessageEntityType.CUSTOM_EMOJI,
-            offset=6,
-            length=2,
+            offset=3,
+            length=1,
             custom_emoji_id="6242164721928113850",
         ),
         MessageEntity(
             type=MessageEntityType.CUSTOM_EMOJI,
-            offset=8,
-            length=2,
+            offset=4,
+            length=1,
             custom_emoji_id="6244468967587450938",
         ),
         MessageEntity(
             type=MessageEntityType.CUSTOM_EMOJI,
-            offset=10,
-            length=2,
+            offset=5,
+            length=1,
             custom_emoji_id="6242193343590174906",
         ),
         MessageEntity(
             type=MessageEntityType.CUSTOM_EMOJI,
-            offset=12,
-            length=2,
+            offset=6,
+            length=1,
             custom_emoji_id="6242414534405918696",
         ),
         MessageEntity(
             type=MessageEntityType.CUSTOM_EMOJI,
-            offset=14,
-            length=2,
+            offset=7,
+            length=1,
             custom_emoji_id="6242356144325528828",
         ),
     ]
@@ -163,3 +163,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
+
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
