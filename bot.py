@@ -1,5 +1,4 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity
-from telegram.constants import MessageEntityType
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -27,78 +26,23 @@ def home_menu():
 
 def product_menu():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("Unlock Full Access (£15)", url="https://buy.stripe.com/aFadR2diP8qV67D5HY4gg0D")],
+        [InlineKeyboardButton("Unlock Full Access", url="https://buy.stripe.com/aFadR2diP8qV67D5HY4gg0D")],
         [InlineKeyboardButton("Back", callback_data="back_home")],
     ])
 
 
 def get_home_caption():
-    return """XXXXXXXX
-
-Strickly VIP
+    return """Strickly VIP
 
 Private network access.
 
-19 members joined today.
+Unlock access to all 10 VIP channels.
 
 • Instant access after payment
 • Secure checkout
 • Card accepted
 
-Tap below to continue."""
-
-
-def get_home_caption_entities():
-    return [
-        MessageEntity(
-            type=MessageEntityType.CUSTOM_EMOJI,
-            offset=0,
-            length=1,
-            custom_emoji_id="6244620201975879160",
-        ),
-        MessageEntity(
-            type=MessageEntityType.CUSTOM_EMOJI,
-            offset=1,
-            length=1,
-            custom_emoji_id="6242377370053906003",
-        ),
-        MessageEntity(
-            type=MessageEntityType.CUSTOM_EMOJI,
-            offset=2,
-            length=1,
-            custom_emoji_id="6244711710549086048",
-        ),
-        MessageEntity(
-            type=MessageEntityType.CUSTOM_EMOJI,
-            offset=3,
-            length=1,
-            custom_emoji_id="6242164721928113850",
-        ),
-        MessageEntity(
-            type=MessageEntityType.CUSTOM_EMOJI,
-            offset=4,
-            length=1,
-            custom_emoji_id="6244468967587450938",
-        ),
-        MessageEntity(
-            type=MessageEntityType.CUSTOM_EMOJI,
-            offset=5,
-            length=1,
-            custom_emoji_id="6242193343590174906",
-        ),
-        MessageEntity(
-            type=MessageEntityType.CUSTOM_EMOJI,
-            offset=6,
-            length=1,
-            custom_emoji_id="6242414534405918696",
-        ),
-        MessageEntity(
-            type=MessageEntityType.CUSTOM_EMOJI,
-            offset=7,
-            length=1,
-            custom_emoji_id="6242356144325528828",
-        ),
-    ]
+🔒 256-bit SSL encrypted"""
 
 
 def get_buy_caption():
@@ -106,18 +50,17 @@ def get_buy_caption():
 
 Unlock full access to all 10 VIP channels.
 
-27 members joined in the last 24 hours.
+What will you get joining VIP?
 
-What you get:
-• Private VIP network access
-• Daily updates & drops
-• Exclusive content
+• 320K of UK data
+• All new and upcoming channels
+• Exclusive members-only channel
+• Full Strickly VIP folder (10 channels)
 
 Price: £15.00 (one-time)
 
-Instant access delivered after payment.
-
-Tap below to unlock access."""
+⚡ Instant access after payment
+🔒 Secure checkout"""
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -125,7 +68,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_photo(
             photo=photo,
             caption=get_home_caption(),
-            caption_entities=get_home_caption_entities(),
             reply_markup=home_menu(),
         )
 
@@ -157,17 +99,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.chat.send_photo(
                 photo=photo,
                 caption=get_home_caption(),
-                caption_entities=get_home_caption_entities(),
                 reply_markup=home_menu(),
             )
 
 
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
-
     app.run_polling()
 
 
