@@ -12,9 +12,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# =========================
-# ENV / CONFIG
-# =========================
+# ========= CONFIG =========
 TOKEN = os.getenv("BOT_TOKEN")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
@@ -24,13 +22,9 @@ stripe.api_key = STRIPE_SECRET_KEY
 SUPPORT_URL = "https://t.me/StricklySupportbot"
 BOT_URL = "https://t.me/StricklyVIPbot"
 VIP_INVITE_LINK = "https://t.me/+P9aBNAzfo6szNmM8"
-
-# uploaded banner filename in your repo
 BANNER_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
 
-# =========================
-# HELPERS
-# =========================
+# ========= HELPERS =========
 def send_telegram_message(chat_id: int, text: str) -> None:
     requests.post(
         f"https://api.telegram.org/bot{TOKEN}/sendMessage",
@@ -42,7 +36,7 @@ def send_telegram_message(chat_id: int, text: str) -> None:
 def create_checkout_session(chat_id: int):
     try:
         session = stripe.checkout.Session.create(
-            mode="payment",
+            payment_method_types=["card"],
             line_items=[
                 {
                     "price_data": {
@@ -55,11 +49,10 @@ def create_checkout_session(chat_id: int):
                     "quantity": 1,
                 }
             ],
+            mode="payment",
             success_url=BOT_URL,
             cancel_url=BOT_URL,
-            metadata={
-                "telegram_id": str(chat_id),
-            },
+            metadata={"telegram_id": str(chat_id)},
         )
         return session.url
     except Exception as e:
@@ -67,29 +60,26 @@ def create_checkout_session(chat_id: int):
         return None
 
 
-# =========================
-# MENUS / TEXT
-# =========================
+# ========= MENUS =========
 def home_menu():
-    keyboard = [
+    return InlineKeyboardMarkup([
         [InlineKeyboardButton("Continue", callback_data="buy_now")],
         [InlineKeyboardButton("View previews", callback_data="previews")],
         [InlineKeyboardButton("Support", url=SUPPORT_URL)],
-    ]
-    return InlineKeyboardMarkup(keyboard)
+    ])
 
 
-def product_menu(card_url: str):
-    keyboard = [
-        [InlineKeyboardButton("Pay by Card", url=card_url)],
+def product_menu(checkout_url: str):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("Pay by Card", url=checkout_url)],
         [InlineKeyboardButton("Back", callback_data="back_home")],
-    ]
-    return InlineKeyboardMarkup(keyboard)
+    ])
 
 
 def back_menu():
-    keyboard = [[InlineKeyboardButton("Back", callback_data="back_home")]]
-    return InlineKeyboardMarkup(keyboard)
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("Back", callback_data="back_home")]
+    ])
 
 
 def get_home_caption():
@@ -124,9 +114,7 @@ PREVIEW_TEXT = """Previews
 Add screenshots, proof, or sample content here."""
 
 
-# =========================
-# TELEGRAM BOT
-# =========================
+# ========= TELEGRAM BOT =========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with open(BANNER_IMAGE, "rb") as photo:
         await update.message.reply_photo(
@@ -192,9 +180,7 @@ def run_bot():
     telegram_app.run_polling()
 
 
-# =========================
-# FLASK / STRIPE WEBHOOK
-# =========================
+# ========= WEBHOOK =========
 flask_app = Flask(__name__)
 
 
@@ -231,9 +217,7 @@ def stripe_webhook():
     return "OK", 200
 
 
-# =========================
-# RUN BOTH
-# =========================
+# ========= RUN BOTH =========
 if __name__ == "__main__":
     threading.Thread(target=run_bot).start()
     flask_app.run(host="0.0.0.0", port=8080)
