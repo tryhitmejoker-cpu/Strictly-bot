@@ -15,7 +15,7 @@ FOLDER_LINK = "https://t.me/addlist/fi8vlP6OlSs0MGFk"
 SUPPORT_URL = "https://t.me/StricklySupportbot"
 PREVIEWS_URL = "https://t.me/+EM4JGufTMKE2OWRk"
 
-HOME_GIF = "vip.gif.gif"
+HOME_ANIMATION = "pika-video.mp4"
 BUY_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
 
 STATS_FILE = "stats.json"
@@ -125,17 +125,17 @@ async def create_crypto_payment(user_id: int) -> dict:
 
 
 async def send_home(target):
-    if Path(HOME_GIF).exists():
-        with open(HOME_GIF, "rb") as gif:
+    if Path(HOME_ANIMATION).exists():
+        with open(HOME_ANIMATION, "rb") as media:
             if hasattr(target, "reply_animation"):
                 await target.reply_animation(
-                    animation=gif,
+                    animation=media,
                     caption=get_home_caption(),
                     reply_markup=home_menu(),
                 )
             else:
                 await target.send_animation(
-                    animation=gif,
+                    animation=media,
                     caption=get_home_caption(),
                     reply_markup=home_menu(),
                 )
