@@ -10,12 +10,12 @@ from pathlib import Path
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = 8633029909
 OXAPAY_API_KEY = os.getenv("OXAPAY_API_KEY")
+
 FOLDER_LINK = "https://t.me/addlist/fi8vlP6OlSs0MGFk"
 SUPPORT_URL = "https://t.me/StricklySupportbot"
 PREVIEWS_URL = "https://t.me/+EM4JGufTMKE2OWRk"
 
-HOME_VIDEO = "pika-video.mp4"
-HOME_IMAGE = "3B02192C-77A1-49E4-9A12-31F2759144D6.png"
+HOME_GIF = "vip.gif.gif"
 BUY_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
 
 STATS_FILE = "stats.json"
@@ -124,48 +124,30 @@ async def create_crypto_payment(user_id: int) -> dict:
         return response.json()
 
 
-async def send_home(chat_or_message):
-    if Path(HOME_VIDEO).exists():
-        with open(HOME_VIDEO, "rb") as video:
-            if hasattr(chat_or_message, "reply_video"):
-                await chat_or_message.reply_video(
-                    video=video,
-                    caption=get_home_caption(),
-                    reply_markup=home_menu(),
-                    supports_streaming=True
-                )
-            else:
-                await chat_or_message.send_video(
-                    video=video,
-                    caption=get_home_caption(),
-                    reply_markup=home_menu(),
-                    supports_streaming=True
-                )
-        return
-
-    if Path(HOME_IMAGE).exists():
-        with open(HOME_IMAGE, "rb") as photo:
-            if hasattr(chat_or_message, "reply_photo"):
-                await chat_or_message.reply_photo(
-                    photo=photo,
+async def send_home(target):
+    if Path(HOME_GIF).exists():
+        with open(HOME_GIF, "rb") as gif:
+            if hasattr(target, "reply_animation"):
+                await target.reply_animation(
+                    animation=gif,
                     caption=get_home_caption(),
                     reply_markup=home_menu(),
                 )
             else:
-                await chat_or_message.send_photo(
-                    photo=photo,
+                await target.send_animation(
+                    animation=gif,
                     caption=get_home_caption(),
                     reply_markup=home_menu(),
                 )
         return
 
-    if hasattr(chat_or_message, "reply_text"):
-        await chat_or_message.reply_text(
+    if hasattr(target, "reply_text"):
+        await target.reply_text(
             get_home_caption(),
             reply_markup=home_menu()
         )
     else:
-        await chat_or_message.send_message(
+        await target.send_message(
             get_home_caption(),
             reply_markup=home_menu()
         )
@@ -206,18 +188,17 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-        if not Path(BUY_IMAGE).exists():
+        if Path(BUY_IMAGE).exists():
+            with open(BUY_IMAGE, "rb") as photo:
+                await query.message.chat.send_photo(
+                    photo=photo,
+                    caption=get_buy_caption(),
+                    reply_markup=product_menu(),
+                )
+        else:
             await query.message.chat.send_message(
                 get_buy_caption(),
                 reply_markup=product_menu()
-            )
-            return
-
-        with open(BUY_IMAGE, "rb") as photo:
-            await query.message.chat.send_photo(
-                photo=photo,
-                caption=get_buy_caption(),
-                reply_markup=product_menu(),
             )
 
     elif query.data == "pay_crypto":
