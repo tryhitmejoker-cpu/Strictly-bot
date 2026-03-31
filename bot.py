@@ -18,7 +18,7 @@ HOME_IMAGE = "3B02192C-77A1-49E4-9A12-31F2759144D6.png"
 BUY_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
 STATS_FILE = "stats.json"
 PENDING_PAYMENTS_FILE = "pending_payments.json"
-OXAPAY_API_URL = "https://api.oxapay.com/merchants/request/invoice"
+OXAPAY_API_URL = "https://api.oxapay.com/merchants/request"
 
 def load_stats():
     if Path(STATS_FILE).exists():
@@ -70,15 +70,6 @@ def product_menu():
         [InlineKeyboardButton("◀️ Back", callback_data="back_home")],
     ])
 
-def crypto_menu():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("₿ Bitcoin (BTC)", callback_data="crypto_BTC")],
-        [InlineKeyboardButton("🔵 XRP (Ripple)", callback_data="crypto_XRP")],
-        [InlineKeyboardButton("💵 USDT (Tether)", callback_data="crypto_USDT")],
-        [InlineKeyboardButton("🔷 Ethereum (ETH)", callback_data="crypto_ETH")],
-        [InlineKeyboardButton("◀️ Back", callback_data="buy_now")],
-    ])
-
 def get_home_caption():
     return (
         "💎 *Strickly VIP Network*\n\n"
@@ -103,7 +94,7 @@ def get_buy_caption():
         "🔒 Secure checkout — Card & Crypto accepted"
     )
 
-async def create_crypto_payment(currency: str, user_id: int) -> dict:
+async def create_crypto_payment(user_id: int) -> dict:
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
             OXAPAY_API_URL,
@@ -111,9 +102,7 @@ async def create_crypto_payment(currency: str, user_id: int) -> dict:
                 "merchant": OXAPAY_API_KEY,
                 "amount": 19,
                 "currency": "USD",
-                "payCurrency": currency,
                 "lifeTime": 60,
-                "feePaidByPayer": 1,
                 "orderId": str(user_id),
                 "description": "Strickly VIP Full Access",
             }
@@ -162,47 +151,33 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif query.data == "pay_crypto":
         increment_stat("crypto_clicks")
-        try:
-            await query.message.delete()
-        except:
-            pass
-        await query.message.chat.send_message(
-            "₿ *Choose your crypto:*\n\nSelect which cryptocurrency you want to pay with:",
-            reply_markup=crypto_menu(),
-            parse_mode="Markdown"
-        )
-
-    elif query.data.startswith("crypto_"):
-        currency = query.data.split("_")[1]
         await query.message.edit_text("⏳ Creating your payment... please wait.")
         try:
-            result = await create_crypto_payment(currency, user_id)
+            result = await create_crypto_payment(user_id)
             if result.get("result") == 1:
                 track_id = result.get("trackId")
-                pay_address = result.get("payAddress")
-                pay_amount = result.get("payAmount")
-                pay_link = result.get("paymentUrl", "")
+                pay_link = result.get("paymentUrl") or result.get("url")
                 add_pending(track_id, user_id)
 
-                msg = (
+                await query.message.edit_text(
                     f"₿ *Your Crypto Payment*\n\n"
-                    f"💰 Amount: `{pay_amount} {currency}`\n"
-                    f"📋 Address: `{pay_address}`\n\n"
+                    f"💰 Amount: $19 USD equivalent\n\n"
+                    f"Tap the button below to complete your payment.\n"
+                    f"You can choose BTC, XRP, USDT or ETH on the payment page.\n\n"
                     f"⏰ Expires in 60 minutes.\n\n"
-                    f"Once confirmed you will automatically receive your VIP folder link! 💎"
+                    f"Once confirmed you will automatically receive your VIP folder link! 💎",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("💳 Complete Payment", url=pay_link)],
+                        [InlineKeyboardButton("◀️ Back", callback_data="buy_now")]
+                    ])
                 )
-                keyboard = []
-                if pay_link:
-                    keyboard.append([InlineKeyboardButton("💳 Open Payment Page", url=pay_link)])
-
-                await query.message.edit_text(msg, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard) if keyboard else None)
 
                 await context.bot.send_message(
                     chat_id=ADMIN_ID,
                     text=f"₿ *Crypto Payment Created*\n\n"
                          f"👤 {user.first_name} (@{user.username or 'no username'})\n"
                          f"🆔 {user_id}\n"
-                         f"💰 {pay_amount} {currency}\n"
                          f"🔑 Track ID: {track_id}",
                     parse_mode="Markdown"
                 )
@@ -213,7 +188,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💬 Support", url=SUPPORT_URL)]])
                 )
         except Exception as e:
-            await query.message.edit_text(f"❌ Payment error: {str(e)}\n\nPlease try again.")
+            await query.message.edit_text(f"❌ Payment error. Please try again.")
 
     elif query.data == "back_home":
         try:
