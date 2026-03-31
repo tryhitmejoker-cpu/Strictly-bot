@@ -13,14 +13,14 @@ OXAPAY_API_KEY = os.getenv("OXAPAY_API_KEY")
 FOLDER_LINK = "https://t.me/addlist/fi8vlP6OlSs0MGFk"
 SUPPORT_URL = "https://t.me/StricklySupportbot"
 PREVIEWS_URL = "https://t.me/+EM4JGufTMKE2OWRk"
+
+HOME_VIDEO = "pika-video.mp4"
 HOME_IMAGE = "3B02192C-77A1-49E4-9A12-31F2759144D6.png"
 BUY_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
+
 STATS_FILE = "stats.json"
 PENDING_PAYMENTS_FILE = "pending_payments.json"
 OXAPAY_API_URL = "https://api.oxapay.com/merchants/request"
-
-# your custom emoji id
-SSL_EMOJI = '<tg-emoji emoji-id="6276239815633540328">✔️</tg-emoji>'
 
 
 def load_stats():
@@ -89,7 +89,7 @@ def get_home_caption():
         "• Instant access after payment\n"
         "• Secure checkout\n"
         "• Card accepted\n\n"
-        f"{SSL_EMOJI} 256-bit SSL encrypted"
+        "✅ 256-bit SSL encrypted"
     )
 
 
@@ -124,27 +124,59 @@ async def create_crypto_payment(user_id: int) -> dict:
         return response.json()
 
 
+async def send_home(chat_or_message):
+    if Path(HOME_VIDEO).exists():
+        with open(HOME_VIDEO, "rb") as video:
+            if hasattr(chat_or_message, "reply_video"):
+                await chat_or_message.reply_video(
+                    video=video,
+                    caption=get_home_caption(),
+                    reply_markup=home_menu(),
+                    supports_streaming=True
+                )
+            else:
+                await chat_or_message.send_video(
+                    video=video,
+                    caption=get_home_caption(),
+                    reply_markup=home_menu(),
+                    supports_streaming=True
+                )
+        return
+
+    if Path(HOME_IMAGE).exists():
+        with open(HOME_IMAGE, "rb") as photo:
+            if hasattr(chat_or_message, "reply_photo"):
+                await chat_or_message.reply_photo(
+                    photo=photo,
+                    caption=get_home_caption(),
+                    reply_markup=home_menu(),
+                )
+            else:
+                await chat_or_message.send_photo(
+                    photo=photo,
+                    caption=get_home_caption(),
+                    reply_markup=home_menu(),
+                )
+        return
+
+    if hasattr(chat_or_message, "reply_text"):
+        await chat_or_message.reply_text(
+            get_home_caption(),
+            reply_markup=home_menu()
+        )
+    else:
+        await chat_or_message.send_message(
+            get_home_caption(),
+            reply_markup=home_menu()
+        )
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type != "private":
         return
 
     increment_stat("starts")
-
-    if not Path(HOME_IMAGE).exists():
-        await update.message.reply_text(
-            get_home_caption(),
-            reply_markup=home_menu(),
-            parse_mode="HTML"
-        )
-        return
-
-    with open(HOME_IMAGE, "rb") as photo:
-        await update.message.reply_photo(
-            photo=photo,
-            caption=get_home_caption(),
-            reply_markup=home_menu(),
-            parse_mode="HTML"
-        )
+    await send_home(update.message)
 
 
 async def stats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -244,21 +276,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-        if not Path(HOME_IMAGE).exists():
-            await query.message.chat.send_message(
-                get_home_caption(),
-                reply_markup=home_menu(),
-                parse_mode="HTML"
-            )
-            return
-
-        with open(HOME_IMAGE, "rb") as photo:
-            await query.message.chat.send_photo(
-                photo=photo,
-                caption=get_home_caption(),
-                reply_markup=home_menu(),
-                parse_mode="HTML"
-            )
+        await send_home(query.message.chat)
 
 
 bot_app = None
