@@ -19,6 +19,9 @@ STATS_FILE = "stats.json"
 PENDING_PAYMENTS_FILE = "pending_payments.json"
 OXAPAY_API_URL = "https://api.oxapay.com/merchants/request"
 
+# your custom emoji id
+SSL_EMOJI = '<tg-emoji emoji-id="6276239815633540328">✔️</tg-emoji>'
+
 
 def load_stats():
     if Path(STATS_FILE).exists():
@@ -65,7 +68,7 @@ def get_and_remove_pending(track_id):
 
 def home_menu():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("💎 Buy Now", callback_data="buy_now")],
+        [InlineKeyboardButton("Unlock Access", callback_data="buy_now")],
         [InlineKeyboardButton("👀 View Previews", url=PREVIEWS_URL)],
         [InlineKeyboardButton("💬 Support", url=SUPPORT_URL)],
     ])
@@ -86,7 +89,7 @@ def get_home_caption():
         "• Instant access after payment\n"
         "• Secure checkout\n"
         "• Card accepted\n\n"
-        "✅ 256-bit SSL encrypted"
+        f"{SSL_EMOJI} 256-bit SSL encrypted"
     )
 
 
@@ -130,7 +133,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not Path(HOME_IMAGE).exists():
         await update.message.reply_text(
             get_home_caption(),
-            reply_markup=home_menu()
+            reply_markup=home_menu(),
+            parse_mode="HTML"
         )
         return
 
@@ -139,6 +143,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             photo=photo,
             caption=get_home_caption(),
             reply_markup=home_menu(),
+            parse_mode="HTML"
         )
 
 
@@ -150,7 +155,7 @@ async def stats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"📊 Bot Stats\n\n"
         f"👥 Total starts: {s.get('starts', 0)}\n"
-        f"💎 Buy Now clicks: {s.get('buy_clicks', 0)}\n"
+        f"💎 Buy clicks: {s.get('buy_clicks', 0)}\n"
         f"₿ Crypto clicks: {s.get('crypto_clicks', 0)}"
     )
 
@@ -242,7 +247,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not Path(HOME_IMAGE).exists():
             await query.message.chat.send_message(
                 get_home_caption(),
-                reply_markup=home_menu()
+                reply_markup=home_menu(),
+                parse_mode="HTML"
             )
             return
 
@@ -251,6 +257,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 photo=photo,
                 caption=get_home_caption(),
                 reply_markup=home_menu(),
+                parse_mode="HTML"
             )
 
 
