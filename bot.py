@@ -6,7 +6,6 @@ import os
 import json
 import httpx
 from pathlib import Path
-from datetime import datetime
 
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = 8633029909
@@ -19,7 +18,7 @@ HOME_IMAGE = "3B02192C-77A1-49E4-9A12-31F2759144D6.png"
 BUY_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
 STATS_FILE = "stats.json"
 PENDING_PAYMENTS_FILE = "pending_payments.json"
-OXAPAY_API_URL = "https://api.oxapay.com/merchants/request"
+OXAPAY_API_URL = "https://api.oxapay.com/merchants/request/invoice"
 
 def load_stats():
     if Path(STATS_FILE).exists():
@@ -182,15 +181,22 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 track_id = result.get("trackId")
                 pay_address = result.get("payAddress")
                 pay_amount = result.get("payAmount")
+                pay_link = result.get("paymentUrl", "")
                 add_pending(track_id, user_id)
-                await query.message.edit_text(
+
+                msg = (
                     f"₿ *Your Crypto Payment*\n\n"
                     f"💰 Amount: `{pay_amount} {currency}`\n"
                     f"📋 Address: `{pay_address}`\n\n"
-                    f"⏰ This payment expires in 60 minutes.\n\n"
-                    f"Once payment is confirmed you will automatically receive your VIP folder link! 💎",
-                    parse_mode="Markdown"
+                    f"⏰ Expires in 60 minutes.\n\n"
+                    f"Once confirmed you will automatically receive your VIP folder link! 💎"
                 )
+                keyboard = []
+                if pay_link:
+                    keyboard.append([InlineKeyboardButton("💳 Open Payment Page", url=pay_link)])
+
+                await query.message.edit_text(msg, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard) if keyboard else None)
+
                 await context.bot.send_message(
                     chat_id=ADMIN_ID,
                     text=f"₿ *Crypto Payment Created*\n\n"
@@ -201,12 +207,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     parse_mode="Markdown"
                 )
             else:
+                error_msg = result.get("message", "Unknown error")
                 await query.message.edit_text(
-                    "❌ Could not create payment. Please try again or use card payment.",
+                    f"❌ Could not create payment: {error_msg}\n\nPlease use card payment or contact support.",
                     reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💬 Support", url=SUPPORT_URL)]])
                 )
         except Exception as e:
-            await query.message.edit_text("❌ Payment error. Please try again.")
+            await query.message.edit_text(f"❌ Payment error: {str(e)}\n\nPlease try again.")
 
     elif query.data == "back_home":
         try:
