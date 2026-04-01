@@ -8,7 +8,6 @@ from pathlib import Path
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    Application,
     ApplicationBuilder,
     CommandHandler,
     CallbackQueryHandler,
@@ -230,6 +229,7 @@ def buy_menu() -> InlineKeyboardMarkup:
     ])
 
 
+# ---------------- HOME ----------------
 async def send_home(chat, index: int = 0):
     caption = build_home_caption(index)
 
@@ -269,6 +269,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     record_join()
     await send_home(update.message, 0)
+
     asyncio.create_task(
         delayed_vouch_message(context, update.effective_chat.id)
     )
@@ -317,7 +318,7 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ---------------- STARTUP ----------------
-async def post_init(application: Application):
+async def post_init(application):
     await application.bot.delete_webhook(drop_pending_updates=True)
     print("Webhook cleared.")
     print("BOT TOKEN LOADED:", bool(TOKEN))
@@ -325,19 +326,25 @@ async def post_init(application: Application):
     print("BUY_IMAGE EXISTS:", Path(BUY_IMAGE).exists())
 
 
-# ---------------- RUN ----------------
-if not TOKEN:
-    raise ValueError("BOT_TOKEN is not set")
+# ---------------- MAIN ----------------
+async def main():
+    if not TOKEN:
+        raise ValueError("BOT_TOKEN is not set")
 
-app = (
-    ApplicationBuilder()
-    .token(TOKEN)
-    .post_init(post_init)
-    .build()
-)
+    app = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .post_init(post_init)
+        .build()
+    )
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(buttons))
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(buttons))
 
-print("Bot starting...")
-app.run_polling(drop_pending_updates=True)
+    print("Bot starting...")
+    await asyncio.sleep(2)
+    await app.run_polling(drop_pending_updates=True)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
