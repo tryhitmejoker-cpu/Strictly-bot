@@ -318,33 +318,24 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ---------------- STARTUP ----------------
-async def post_init(application):
-    await application.bot.delete_webhook(drop_pending_updates=True)
-    print("Webhook cleared.")
+async def startup(app):
+    await app.bot.delete_webhook(drop_pending_updates=True)
+    print("Webhook cleared")
     print("BOT TOKEN LOADED:", bool(TOKEN))
     print("HOME_ANIMATION EXISTS:", Path(HOME_ANIMATION).exists())
     print("BUY_IMAGE EXISTS:", Path(BUY_IMAGE).exists())
 
 
-# ---------------- MAIN ----------------
-async def main():
-    if not TOKEN:
-        raise ValueError("BOT_TOKEN is not set")
+# ---------------- RUN ----------------
+if not TOKEN:
+    raise ValueError("BOT_TOKEN is not set")
 
-    app = (
-        ApplicationBuilder()
-        .token(TOKEN)
-        .post_init(post_init)
-        .build()
-    )
+app = ApplicationBuilder().token(TOKEN).build()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(buttons))
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CallbackQueryHandler(buttons))
 
-    print("Bot starting...")
-    await asyncio.sleep(2)
-    await app.run_polling(drop_pending_updates=True)
+app.post_init = startup
 
-
-if __name__ == "__main__":
-    asyncio.run(main())
+print("Bot starting...")
+app.run_polling(drop_pending_updates=True)
