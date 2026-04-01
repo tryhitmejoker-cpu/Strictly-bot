@@ -1,13 +1,19 @@
 import os
-import asyncio
-import random
-import time
 import json
+import time
+import random
+import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.ext import (
+    Application,
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes,
+)
 
 TOKEN = os.getenv("BOT_TOKEN")
 
@@ -44,7 +50,7 @@ def joins_last_hour():
     return sum(1 for x in load_joins() if x >= now - 3600)
 
 
-def generate_join_feed(count):
+def generate_join_feed(count: int) -> str:
     actions = [
         "Someone just joined",
         "New member joined",
@@ -54,10 +60,10 @@ def generate_join_feed(count):
     ]
     times = ["just now", "1m ago", "2m ago", "3m ago", "5m ago"]
 
-    return "\n".join(
-        f"🟢 {random.choice(actions)} ({random.choice(times)})"
-        for _ in range(min(count, 3))
-    )
+    lines = []
+    for _ in range(min(count, 3)):
+        lines.append(f"🟢 {random.choice(actions)} ({random.choice(times)})")
+    return "\n".join(lines)
 
 
 # ---------------- REVIEWS ----------------
@@ -115,7 +121,6 @@ BASE_REVIEWS = [
     "Legit 🔥",
     "10/10 🔥",
     "Best group on the app 🫡",
-    "Amazing group, worth it 👌🏻",
     "100 percent best group 👌",
     "Definitely worth it 100%",
     "Very worth it 👌",
@@ -170,7 +175,7 @@ def generate_review_data():
     return str(max(1, views)), time_text
 
 
-def build_review(index):
+def build_review(index: int) -> str:
     if random.random() < 0.35:
         name = "Deleted Account"
     else:
@@ -182,12 +187,10 @@ def build_review(index):
         header = f"Forwarded from {name}"
 
     views, time_txt = generate_review_data()
-
     return f"{header}\n\n{BASE_REVIEWS[index]}\n\n👁 {views}   {time_txt}"
 
 
-# ---------------- HOME ----------------
-async def send_home(chat, index=0):
+def build_home_caption(index: int) -> str:
     total = len(BASE_REVIEWS)
     joins = joins_last_hour()
 
@@ -198,100 +201,86 @@ async def send_home(chat, index=0):
             f"{generate_join_feed(joins)}\n\n"
         )
 
-    caption = (
+    return (
         f"{join_text}"
         f"⭐ Reviews\n\n"
         f"{build_review(index)}\n\n"
         f"Review {index + 1} of {total}"
     )
 
-    keyboard = InlineKeyboardMarkup([
+
+def home_menu(index: int) -> InlineKeyboardMarkup:
+    total = len(BASE_REVIEWS)
+    prev_index = total - 1 if index == 0 else index - 1
+    next_index = 0 if index == total - 1 else index + 1
+
+    return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("◀️", callback_data=f"review_{index - 1}"),
-            InlineKeyboardButton("▶️", callback_data=f"review_{index + 1}")
+            InlineKeyboardButton("◀️", callback_data=f"review_{prev_index}"),
+            InlineKeyboardButton("▶️", callback_data=f"review_{next_index}"),
         ],
-        [InlineKeyboardButton("Unlock Access", callback_data="buy_now")]
+        [InlineKeyboardButton("Unlock Access", callback_data="buy_now")],
     ])
+
+
+def buy_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("💳 Buy Now", url="https://buy.stripe.com/aFadR2diP8qV67D5HY4gg0D")],
+        [InlineKeyboardButton("◀️ Back", callback_data="back_home")],
+    ])
+
+
+async def send_home(chat, index: int = 0):
+    caption = build_home_caption(index)
 
     with open(HOME_ANIMATION, "rb") as vid:
         await chat.send_animation(
             animation=vid,
             caption=caption,
-            reply_markup=keyboard
+            reply_markup=home_menu(index),
         )
 
 
-async def edit_home(query, index):
-    total = len(BASE_REVIEWS)
-    joins = joins_last_hour()
-
-    join_text = ""
-    if joins > 0:
-        join_text = (
-            f"🔥 {joins} {'person' if joins == 1 else 'people'} joined recently\n\n"
-            f"{generate_join_feed(joins)}\n\n"
-        )
-
-    caption = (
-        f"{join_text}"
-        f"⭐ Reviews\n\n"
-        f"{build_review(index)}\n\n"
-        f"Review {index + 1} of {total}"
-    )
-
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("◀️", callback_data=f"review_{index - 1}"),
-            InlineKeyboardButton("▶️", callback_data=f"review_{index + 1}")
-        ],
-        [InlineKeyboardButton("Unlock Access", callback_data="buy_now")]
-    ])
+async def edit_home(query, index: int):
+    caption = build_home_caption(index)
 
     await query.edit_message_caption(
         caption=caption,
-        reply_markup=keyboard
+        reply_markup=home_menu(index),
     )
 
 
 # ---------------- POPUP ----------------
-async def delayed_vouch_message(ctx, chat_id):
+async def delayed_vouch_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
     await asyncio.sleep(30)
-    await ctx.bot.send_message(
+    await context.bot.send_message(
         chat_id=chat_id,
         text="Check out our Reviews channel! 👇",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("Click here", url=REVIEWS_CHANNEL)]
-        ])
+        ]),
     )
 
 
-# ---------------- START ----------------
-async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+# ---------------- COMMANDS ----------------
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type != "private":
         return
 
     record_join()
     await send_home(update.message, 0)
-
     asyncio.create_task(
-        delayed_vouch_message(ctx, update.effective_chat.id)
+        delayed_vouch_message(context, update.effective_chat.id)
     )
 
 
 # ---------------- BUTTONS ----------------
-async def buttons(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
 
     if q.data.startswith("review_"):
         index = int(q.data.split("_")[1])
-        total = len(BASE_REVIEWS)
-
-        if index < 0:
-            index = total - 1
-        elif index >= total:
-            index = 0
-
         await edit_home(q, index)
 
     elif q.data == "buy_now":
@@ -315,10 +304,7 @@ async def buttons(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     "⚡ Instant access after payment\n"
                     "🔒 Secure checkout"
                 ),
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💳 Buy Now", url="https://buy.stripe.com/aFadR2diP8qV67D5HY4gg0D")],
-                    [InlineKeyboardButton("◀️ Back", callback_data="back_home")]
-                ])
+                reply_markup=buy_menu(),
             )
 
     elif q.data == "back_home":
@@ -330,12 +316,28 @@ async def buttons(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await send_home(q.message.chat, 0)
 
 
+# ---------------- STARTUP ----------------
+async def post_init(application: Application):
+    await application.bot.delete_webhook(drop_pending_updates=True)
+    print("Webhook cleared.")
+    print("BOT TOKEN LOADED:", bool(TOKEN))
+    print("HOME_ANIMATION EXISTS:", Path(HOME_ANIMATION).exists())
+    print("BUY_IMAGE EXISTS:", Path(BUY_IMAGE).exists())
+
+
 # ---------------- RUN ----------------
 if not TOKEN:
     raise ValueError("BOT_TOKEN is not set")
 
-app = ApplicationBuilder().token(TOKEN).build()
+app = (
+    ApplicationBuilder()
+    .token(TOKEN)
+    .post_init(post_init)
+    .build()
+)
+
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(buttons))
 
-app.run_polling()
+print("Bot starting...")
+app.run_polling(drop_pending_updates=True)
