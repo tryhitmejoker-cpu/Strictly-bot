@@ -9,6 +9,7 @@ from pathlib import Path
 from aiohttp import web
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
+    Application,
     ApplicationBuilder,
     CommandHandler,
     CallbackQueryHandler,
@@ -320,8 +321,16 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_home(q.message.chat, 0)
 
 
-# ---------------- WEB ----------------
+# ---------------- WEB SERVER ----------------
 async def health(request):
+    return web.Response(text="ok")
+
+
+async def telegram_webhook(request):
+    application = request.app["telegram_app"]
+    data = await request.json()
+    update = Update.de_json(data, application.bot)
+    await application.update_queue.put(update)
     return web.Response(text="ok")
 
 
@@ -335,21 +344,22 @@ async def main():
     print("HOME_ANIMATION EXISTS:", Path(HOME_ANIMATION).exists())
     print("BUY_IMAGE EXISTS:", Path(BUY_IMAGE).exists())
 
-    app = ApplicationBuilder().token(TOKEN).build()
+    application = ApplicationBuilder().token(TOKEN).build()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(buttons))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(buttons))
 
-    await app.initialize()
-    await app.start()
+    await application.initialize()
+    await application.start()
 
     webhook_url = f"https://{RAILWAY_PUBLIC_DOMAIN}/telegram"
-    await app.bot.delete_webhook(drop_pending_updates=True)
-    await app.bot.set_webhook(webhook_url)
+    await application.bot.delete_webhook(drop_pending_updates=True)
+    await application.bot.set_webhook(webhook_url)
 
     aio_app = web.Application()
+    aio_app["telegram_app"] = application
     aio_app.router.add_get("/", health)
-    aio_app.router.add_post("/telegram", app.webhook_update_handler)
+    aio_app.router.add_post("/telegram", telegram_webhook)
 
     runner = web.AppRunner(aio_app)
     await runner.setup()
