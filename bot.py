@@ -5,6 +5,9 @@ import asyncio
 import os
 import json
 import httpx
+import random
+import time
+from datetime import datetime, timedelta
 from pathlib import Path
 
 TOKEN = os.getenv("BOT_TOKEN")
@@ -20,12 +23,14 @@ BUY_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
 
 STATS_FILE = "stats.json"
 PENDING_PAYMENTS_FILE = "pending_payments.json"
+JOINS_FILE = "joins.json"
 OXAPAY_API_URL = "https://api.oxapay.com/merchants/request"
 
 
+# ---------------- STATS ----------------
 def load_stats():
     if Path(STATS_FILE).exists():
-        with open(STATS_FILE) as f:
+        with open(STATS_FILE, "r") as f:
             return json.load(f)
     return {"starts": 0, "buy_clicks": 0, "crypto_clicks": 0}
 
@@ -41,9 +46,66 @@ def increment_stat(key):
     save_stats(stats)
 
 
+# ---------------- JOINS ----------------
+def load_joins():
+    if Path(JOINS_FILE).exists():
+        with open(JOINS_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+
+def save_joins(joins):
+    with open(JOINS_FILE, "w") as f:
+        json.dump(joins, f)
+
+
+def record_join():
+    joins = load_joins()
+    joins.append(int(time.time()))
+
+    cutoff = int(time.time()) - 86400
+    joins = [ts for ts in joins if ts >= cutoff]
+
+    save_joins(joins)
+
+
+def joins_last_hour():
+    now = int(time.time())
+    cutoff = now - 3600
+    joins = load_joins()
+    return sum(1 for ts in joins if ts >= cutoff)
+
+
+def generate_join_feed(count: int) -> str:
+    actions = [
+        "Someone just joined",
+        "New member joined",
+        "User unlocked access",
+        "New VIP member joined",
+        "Someone just got access",
+    ]
+
+    time_styles = [
+        "just now",
+        "1m ago",
+        "2m ago",
+        "3m ago",
+        "5m ago",
+    ]
+
+    lines = []
+    for _ in range(min(count, 3)):
+        action = random.choice(actions)
+        time_text = random.choice(time_styles)
+        lines.append(f"🟢 {action} ({time_text})")
+
+    return "\n".join(lines)
+
+
+# ---------------- PAYMENTS ----------------
 def load_pending():
     if Path(PENDING_PAYMENTS_FILE).exists():
-        with open(PENDING_PAYMENTS_FILE) as f:
+        with open(PENDING_PAYMENTS_FILE, "r") as f:
             return json.load(f)
     return {}
 
@@ -66,9 +128,139 @@ def get_and_remove_pending(track_id):
     return user_id
 
 
+async def create_crypto_payment(user_id: int) -> dict:
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            OXAPAY_API_URL,
+            json={
+                "merchant": OXAPAY_API_KEY,
+                "amount": 19,
+                "currency": "USD",
+                "lifeTime": 60,
+                "orderId": str(user_id),
+                "description": "Strickly VIP Full Access",
+            },
+        )
+        return response.json()
+
+
+# ---------------- REVIEWS ----------------
+BASE_REVIEWS = [
+    "Cl banging content always the best 🔥",
+    "Been with strictly for a year now never let me down",
+    "Best in the game",
+    "Got instant access best in the game",
+    "Cracking group, well done lads",
+    "Absolutely brilliant group",
+    "Great group lots of content 🔥",
+    "Group is excellent 👌",
+    "Not a better group around!",
+    "Unreal group every time",
+    "Decent group 👍",
+    "Didn’t expect much at first but it’s actually quality",
+    "Joined thinking it was another bs channel but changed my mind",
+    "Was unsure at first but it’s legit",
+    "How do I access the other groups?",
+    "Is everything unlocked straight away?",
+    "Just joined, how long does access take?",
+    "Do you get all groups included?",
+    "Took a couple minutes to get access but worked fine after",
+    "Was confused at first but support sorted it",
+    "Didn’t understand it at first but all good now",
+    "100% worth it",
+    "Top tier content",
+    "Best I’ve used so far",
+    "Nothing else compares",
+    "Consistent drops every day",
+    "Unreal",
+    "Decent group 👍🏻",
+    "The best group. No others compare and the ones that do come close nicked all their shit from here anyway 😂",
+]
+
+USERNAMES = [
+    "ty_ler",
+    "jack_smith",
+    "gizzy",
+    "jack_thomas",
+    "cocaine_inc",
+    "paul",
+    "mm",
+    "na_user",
+    "deleted_user",
+    "vip_member",
+    "ryan_ldn",
+    "danielx",
+    "jamie",
+    "trader_uk",
+    "ukvip01",
+    "eliteuser",
+    "topclient",
+    "user247",
+    "vipbuyer",
+    "strictlyfan",
+    "premiumguy",
+]
+
+
+def generate_review_time():
+    now = datetime.now()
+    past = now - timedelta(minutes=random.randint(1, 300))
+    return past.strftime("%H:%M")
+
+
+def generate_views():
+    return f"{round(random.uniform(2.5, 3.8), 1)}K"
+
+
+def build_review(index: int) -> str:
+    text = BASE_REVIEWS[index]
+    username = random.choice(USERNAMES)
+    view_count = generate_views()
+    time_text = generate_review_time()
+
+    styles = [
+        f"Forwarded from {username}",
+        f"Forwarded from {username.capitalize()}",
+        f"From {username}",
+    ]
+    header = random.choice(styles)
+
+    if random.random() < 0.2:
+        return f"{header}\n\n{text}"
+
+    return (
+        f"{header}\n\n"
+        f"{text}\n\n"
+        f"👁 {view_count}   {time_text}"
+    )
+
+
+def review_menu(index: int) -> InlineKeyboardMarkup:
+    total = len(BASE_REVIEWS)
+    prev_index = total - 1 if index == 0 else index - 1
+    next_index = 0 if index == total - 1 else index + 1
+
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("◀️", callback_data=f"review_{prev_index}"),
+            InlineKeyboardButton("▶️", callback_data=f"review_{next_index}"),
+        ],
+        [InlineKeyboardButton("Unlock Access", callback_data="buy_now")],
+        [InlineKeyboardButton("◀️ Back", callback_data="back_home")],
+    ])
+
+
+async def send_review(chat, index: int):
+    total = len(BASE_REVIEWS)
+    text = f"⭐ Reviews\n\n{build_review(index)}\n\nReview {index + 1} of {total}"
+    await chat.send_message(text, reply_markup=review_menu(index))
+
+
+# ---------------- MENUS ----------------
 def home_menu():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("Unlock Access", callback_data="buy_now")],
+        [InlineKeyboardButton("⭐ Reviews", callback_data="reviews")],
         [InlineKeyboardButton("👀 View Previews", url=PREVIEWS_URL)],
         [InlineKeyboardButton("💬 Support", url=SUPPORT_URL)],
     ])
@@ -82,8 +274,18 @@ def product_menu():
     ])
 
 
+# ---------------- CAPTIONS ----------------
 def get_home_caption():
+    joined = joins_last_hour()
+
+    join_text = ""
+    if joined > 0:
+        join_word = "person" if joined == 1 else "people"
+        feed = generate_join_feed(joined)
+        join_text = f"🔥 {joined} {join_word} joined recently\n\n{feed}\n\n"
+
     return (
+        join_text +
         "Private network access.\n\n"
         "Unlock access to all 10 VIP channels.\n\n"
         "• Instant access after payment\n"
@@ -108,22 +310,7 @@ def get_buy_caption():
     )
 
 
-async def create_crypto_payment(user_id: int) -> dict:
-    async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(
-            OXAPAY_API_URL,
-            json={
-                "merchant": OXAPAY_API_KEY,
-                "amount": 19,
-                "currency": "USD",
-                "lifeTime": 60,
-                "orderId": str(user_id),
-                "description": "Strickly VIP Full Access",
-            }
-        )
-        return response.json()
-
-
+# ---------------- HOME SEND ----------------
 async def send_home(target):
     if Path(HOME_ANIMATION).exists():
         with open(HOME_ANIMATION, "rb") as media:
@@ -144,20 +331,22 @@ async def send_home(target):
     if hasattr(target, "reply_text"):
         await target.reply_text(
             get_home_caption(),
-            reply_markup=home_menu()
+            reply_markup=home_menu(),
         )
     else:
         await target.send_message(
             get_home_caption(),
-            reply_markup=home_menu()
+            reply_markup=home_menu(),
         )
 
 
+# ---------------- COMMANDS ----------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type != "private":
         return
 
     increment_stat("starts")
+    record_join()
     await send_home(update.message)
 
 
@@ -174,6 +363,7 @@ async def stats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+# ---------------- BUTTONS ----------------
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -198,8 +388,29 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.message.chat.send_message(
                 get_buy_caption(),
-                reply_markup=product_menu()
+                reply_markup=product_menu(),
             )
+
+    elif query.data == "reviews":
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+
+        await send_review(query.message.chat, 0)
+
+    elif query.data.startswith("review_"):
+        try:
+            review_index = int(query.data.split("_")[1])
+        except (ValueError, IndexError):
+            review_index = 0
+
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+
+        await send_review(query.message.chat, review_index)
 
     elif query.data == "pay_crypto":
         increment_stat("crypto_clicks")
@@ -222,8 +433,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "Once confirmed you will automatically receive your VIP folder link.",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton("💳 Complete Payment", url=pay_link)],
-                        [InlineKeyboardButton("◀️ Back", callback_data="buy_now")]
-                    ])
+                        [InlineKeyboardButton("◀️ Back", callback_data="buy_now")],
+                    ]),
                 )
 
                 await context.bot.send_message(
@@ -233,22 +444,22 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         f"👤 {user.first_name} (@{user.username or 'no username'})\n"
                         f"🆔 {user_id}\n"
                         f"🔑 Track ID: {track_id}"
-                    )
+                    ),
                 )
             else:
                 error_msg = result.get("message", "Unknown error")
                 await query.message.edit_text(
                     f"❌ Could not create payment: {error_msg}\n\nPlease use card payment or contact support.",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("💬 Support", url=SUPPORT_URL)]
-                    ])
+                        [InlineKeyboardButton("💬 Support", url=SUPPORT_URL)],
+                    ]),
                 )
         except Exception:
             await query.message.edit_text(
                 "❌ Payment error. Please try again.",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💬 Support", url=SUPPORT_URL)]
-                ])
+                    [InlineKeyboardButton("💬 Support", url=SUPPORT_URL)],
+                ]),
             )
 
     elif query.data == "back_home":
@@ -260,6 +471,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_home(query.message.chat)
 
 
+# ---------------- WEBHOOK ----------------
 bot_app = None
 
 
@@ -280,7 +492,7 @@ async def oxapay_webhook(request):
                         "Thank you for your purchase! Here is your VIP folder link:\n\n"
                         f"🔗 {FOLDER_LINK}\n\n"
                         "Welcome to Strickly VIP!"
-                    )
+                    ),
                 )
 
                 await bot_app.bot.send_message(
@@ -289,7 +501,7 @@ async def oxapay_webhook(request):
                         "✅ Payment Confirmed!\n\n"
                         f"🆔 User {user_id} paid successfully\n"
                         f"🔑 Track ID: {track_id}"
-                    )
+                    ),
                 )
     except Exception as e:
         print(f"Webhook error: {e}")
@@ -306,6 +518,7 @@ async def run_webhook_server():
     await site.start()
 
 
+# ---------------- MAIN ----------------
 def main():
     global bot_app
 
