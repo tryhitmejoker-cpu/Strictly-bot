@@ -6,6 +6,7 @@ import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from aiohttp import web
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -15,6 +16,8 @@ from telegram.ext import (
 )
 
 TOKEN = os.getenv("BOT_TOKEN")
+PORT = int(os.getenv("PORT", "8080"))
+RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN")
 
 HOME_ANIMATION = "pika-video.mp4"
 BUY_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
@@ -317,25 +320,45 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_home(q.message.chat, 0)
 
 
-# ---------------- STARTUP ----------------
-async def startup(app):
-    await app.bot.delete_webhook(drop_pending_updates=True)
-    print("Webhook cleared")
+# ---------------- WEB ----------------
+async def health(request):
+    return web.Response(text="ok")
+
+
+async def main():
+    if not TOKEN:
+        raise ValueError("BOT_TOKEN is not set")
+    if not RAILWAY_PUBLIC_DOMAIN:
+        raise ValueError("RAILWAY_PUBLIC_DOMAIN is not set")
+
     print("BOT TOKEN LOADED:", bool(TOKEN))
     print("HOME_ANIMATION EXISTS:", Path(HOME_ANIMATION).exists())
     print("BUY_IMAGE EXISTS:", Path(BUY_IMAGE).exists())
 
+    app = ApplicationBuilder().token(TOKEN).build()
 
-# ---------------- RUN ----------------
-if not TOKEN:
-    raise ValueError("BOT_TOKEN is not set")
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(buttons))
 
-app = ApplicationBuilder().token(TOKEN).build()
+    await app.initialize()
+    await app.start()
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(buttons))
+    webhook_url = f"https://{RAILWAY_PUBLIC_DOMAIN}/telegram"
+    await app.bot.delete_webhook(drop_pending_updates=True)
+    await app.bot.set_webhook(webhook_url)
 
-app.post_init = startup
+    aio_app = web.Application()
+    aio_app.router.add_get("/", health)
+    aio_app.router.add_post("/telegram", app.webhook_update_handler)
 
-print("Bot starting...")
-app.run_polling(drop_pending_updates=True)
+    runner = web.AppRunner(aio_app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
+
+    print("Webhook set:", webhook_url)
+    await asyncio.Event().wait()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
