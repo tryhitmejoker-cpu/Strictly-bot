@@ -9,7 +9,6 @@ from pathlib import Path
 from aiohttp import web
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    Application,
     ApplicationBuilder,
     CommandHandler,
     CallbackQueryHandler,
@@ -35,17 +34,17 @@ def load_joins():
     return []
 
 
-def save_joins(joins):
+def save_joins(j):
     with open(JOINS_FILE, "w") as f:
-        json.dump(joins, f)
+        json.dump(j, f)
 
 
 def record_join():
-    joins = load_joins()
-    joins.append(int(time.time()))
+    j = load_joins()
+    j.append(int(time.time()))
     cutoff = int(time.time()) - 86400
-    joins = [x for x in joins if x >= cutoff]
-    save_joins(joins)
+    j = [x for x in j if x >= cutoff]
+    save_joins(j)
 
 
 def joins_last_hour():
@@ -53,230 +52,107 @@ def joins_last_hour():
     return sum(1 for x in load_joins() if x >= now - 3600)
 
 
-def generate_join_feed(count: int) -> str:
-    actions = [
-        "Someone just joined",
-        "New member joined",
-        "User unlocked access",
-        "New VIP member joined",
-        "Someone just got access",
-    ]
-    times = ["just now", "1m ago", "2m ago", "3m ago", "5m ago"]
+def generate_join_feed(count):
+    actions = ["Someone just joined", "New member joined"]
+    times = ["just now", "1m ago", "2m ago", "3m ago"]
 
-    lines = []
-    for _ in range(min(count, 3)):
-        lines.append(f"🟢 {random.choice(actions)} ({random.choice(times)})")
-    return "\n".join(lines)
+    return "\n".join(
+        f"🟢 {random.choice(actions)} ({random.choice(times)})"
+        for _ in range(min(count, 3))
+    )
 
 
 # ---------------- REVIEWS ----------------
-USERNAMES = [
-    "Jack Thomas",
-    "N/A",
-    "ClaFo",
-    "A",
-    "Joel Miller",
-    "Jay",
-    "Frankie King",
-    "C W",
-    "U",
-    "E M",
-    "F",
-    "BNF",
-    "Johnlad",
-    "John wick",
-    "Kieran",
-    "Rich",
-    "L",
-    "Aj",
-    "seb",
-    "benzino",
-]
-
-BASE_REVIEWS = [
-    "Best 🇮🇪&🇬🇧 group around",
-    "Amazing group, worth it 👌🏻",
-    "Easily the best group around definitely worth it",
-    "100% worth it best group",
+REVIEWS = [
     "Best group on Telegram",
-    "By far telegrams best groups",
-    "The best group. No others compare and the ones that do come close nicked all their shit from here anyway 😂",
-    "12 out of 10 points for this group",
-    "Absolutely outstanding stuff! Well worth it 👏",
-    "Wonderful group 🔥",
-    "Good group very good",
-    "The group and channels are amazing",
-    "Legit and well worth it",
-    "Best group I’ve ever been in 🔥",
-    "Best group on tele for sure",
-    "The best, regularly updates",
-    "Consistent group",
-    "Dayyum this group is good",
-    "Great group, 10/10 content",
-    "10/10 best group about",
-    "This is a fire group so much content 🔥",
-    "Best group on tele by far stacked with content",
-    "Yh great group tbf worth it",
-    "Great groups and an absolute bargain",
-    "Love this group so worth it",
-    "Good chat. Good price",
-    "Top group 👌",
-    "Legit 🔥",
-    "10/10 🔥",
-    "Best group on the app 🫡",
-    "100 percent best group 👌",
-    "Definitely worth it 100%",
+    "Amazing group, worth it 👌",
+    "100% worth it best group",
+    "Easily the best group around",
+    "Top group 🔥",
     "Very worth it 👌",
     "Brilliant group",
-    "Good group",
-    "Very good group!",
     "Best about",
-    "Awesome",
     "Love this group",
-    "Best group I’ve been on",
-    "100% worth it. Top tier 👌",
-    "Excellent group 🔥",
-    "Not a better group around!",
-    "Class group!!",
-    "Best telegram group",
-    "Certi group 😮‍💨",
-    "Worth every penny",
-    "Absolutely brilliant group",
-    "Great group lots of content 🔥",
-    "Group is excellent 👌",
-    "Group is brilliant 👍",
-    "Great groups",
-    "The best group",
-    "Great group",
-    "Unreal group",
-    "Best about 👏🏻",
+    "10/10 🔥",
 ]
 
 
-def generate_review_data():
+def generate_review(index):
     now = datetime.now()
-    mins = random.randint(1, 60 * 24 * 14)
-    past = now - timedelta(minutes=mins)
+    mins = random.randint(1, 1440)
 
     if mins <= 2:
-        time_text = "just now"
+        time_txt = "just now"
         views = random.randint(2, 6)
-    elif mins <= 15:
-        time_text = f"{mins}m ago"
+    elif mins <= 10:
+        time_txt = f"{mins}m ago"
         views = random.randint(10, 17)
-    elif mins <= 1440:
-        time_text = past.strftime("%H:%M")
-        views = random.randint(40, 90)
-    elif mins <= 2880:
-        time_text = f"Yesterday {past.strftime('%H:%M')}"
-        views = random.randint(80, 130)
     else:
-        time_text = past.strftime("%d %b %H:%M")
-        views = random.randint(120, 180)
+        time_txt = now.strftime("%H:%M")
+        views = random.randint(40, 120)
 
-    views += random.randint(-2, 2)
-    return str(max(1, views)), time_text
-
-
-def build_review(index: int) -> str:
-    if random.random() < 0.35:
-        name = "Deleted Account"
-    else:
-        name = random.choice(USERNAMES)
-
-    if name == "Deleted Account" and random.random() < 0.3:
-        header = "Forwarded message"
-    else:
-        header = f"Forwarded from {name}"
-
-    views, time_txt = generate_review_data()
-    return f"{header}\n\n{BASE_REVIEWS[index]}\n\n👁 {views}   {time_txt}"
+    return f"{REVIEWS[index]}\n\n👁 {views}   {time_txt}"
 
 
-def build_home_caption(index: int) -> str:
-    total = len(BASE_REVIEWS)
+def build_caption(index):
     joins = joins_last_hour()
 
     join_text = ""
     if joins > 0:
-        join_text = (
-            f"🔥 {joins} {'person' if joins == 1 else 'people'} joined recently\n\n"
-            f"{generate_join_feed(joins)}\n\n"
-        )
+        join_text = f"🔥 {joins} joined recently\n\n{generate_join_feed(joins)}\n\n"
 
     return (
         f"{join_text}"
         f"⭐ Reviews\n\n"
-        f"{build_review(index)}\n\n"
-        f"Review {index + 1} of {total}"
+        f"{generate_review(index)}\n\n"
+        f"Review {index+1} of {len(REVIEWS)}"
     )
 
 
-def home_menu(index: int) -> InlineKeyboardMarkup:
-    total = len(BASE_REVIEWS)
-    prev_index = total - 1 if index == 0 else index - 1
-    next_index = 0 if index == total - 1 else index + 1
+def home_menu(index):
+    total = len(REVIEWS)
+    prev_i = total - 1 if index == 0 else index - 1
+    next_i = 0 if index == total - 1 else index + 1
 
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("◀️", callback_data=f"review_{prev_index}"),
-            InlineKeyboardButton("▶️", callback_data=f"review_{next_index}"),
+            InlineKeyboardButton("◀️", callback_data=f"r_{prev_i}"),
+            InlineKeyboardButton("▶️", callback_data=f"r_{next_i}"),
         ],
-        [InlineKeyboardButton("Unlock Access", callback_data="buy_now")],
+        [InlineKeyboardButton("Unlock Access", callback_data="buy")],
     ])
 
 
-def buy_menu() -> InlineKeyboardMarkup:
+def buy_menu():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("💳 Buy Now", url="https://buy.stripe.com/aFadR2diP8qV67D5HY4gg0D")],
-        [InlineKeyboardButton("◀️ Back", callback_data="back_home")],
+        [InlineKeyboardButton("◀️ Back", callback_data="back")],
     ])
 
 
 # ---------------- HOME ----------------
-async def send_home(chat, index: int = 0):
-    caption = build_home_caption(index)
+async def send_home(message, index=0):
+    caption = build_caption(index)
 
     with open(HOME_ANIMATION, "rb") as vid:
-        await chat.send_animation(
+        await message.reply_animation(
             animation=vid,
             caption=caption,
             reply_markup=home_menu(index),
         )
 
 
-async def edit_home(query, index: int):
-    caption = build_home_caption(index)
-
+async def edit_home(query, index):
     await query.edit_message_caption(
-        caption=caption,
+        caption=build_caption(index),
         reply_markup=home_menu(index),
-    )
-
-
-# ---------------- POPUP ----------------
-async def delayed_vouch_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
-    await asyncio.sleep(30)
-    await context.bot.send_message(
-        chat_id=chat_id,
-        text="Check out our Reviews channel! 👇",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("Click here", url=REVIEWS_CHANNEL)]
-        ]),
     )
 
 
 # ---------------- COMMANDS ----------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.type != "private":
-        return
-
     record_join()
     await send_home(update.message, 0)
-
-    asyncio.create_task(
-        delayed_vouch_message(context, update.effective_chat.id)
-    )
 
 
 # ---------------- BUTTONS ----------------
@@ -284,89 +160,68 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
 
-    if q.data.startswith("review_"):
-        index = int(q.data.split("_")[1])
-        await edit_home(q, index)
+    if q.data.startswith("r_"):
+        i = int(q.data.split("_")[1])
+        await edit_home(q, i)
 
-    elif q.data == "buy_now":
+    elif q.data == "buy":
         try:
             await q.message.delete()
-        except Exception:
+        except:
             pass
 
         with open(BUY_IMAGE, "rb") as img:
             await q.message.chat.send_photo(
                 photo=img,
-                caption=(
-                    "Strickly VIP\n\n"
-                    "Unlock full access to all 10 VIP channels.\n\n"
-                    "What will you get joining VIP?\n\n"
-                    "• 320K of UK data\n"
-                    "• All new and upcoming channels\n"
-                    "• Exclusive members-only channel\n"
-                    "• Full Strickly VIP folder (10 channels)\n\n"
-                    "Price: £15.00 (one-time)\n\n"
-                    "⚡ Instant access after payment\n"
-                    "🔒 Secure checkout"
-                ),
+                caption="Unlock full VIP access\n\n£15 one-time",
                 reply_markup=buy_menu(),
             )
 
-    elif q.data == "back_home":
+    elif q.data == "back":
         try:
             await q.message.delete()
-        except Exception:
+        except:
             pass
 
-        await send_home(q.message.chat, 0)
+        await send_home(q.message, 0)
 
 
-# ---------------- WEB SERVER ----------------
-async def health(request):
-    return web.Response(text="ok")
-
-
-async def telegram_webhook(request):
-    application = request.app["telegram_app"]
+# ---------------- WEBHOOK ----------------
+async def webhook_handler(request):
+    app = request.app["bot"]
     data = await request.json()
-    update = Update.de_json(data, application.bot)
-    await application.update_queue.put(update)
-    return web.Response(text="ok")
+    update = Update.de_json(data, app.bot)
+    await app.update_queue.put(update)
+    return web.Response()
 
 
 async def main():
     if not TOKEN:
-        raise ValueError("BOT_TOKEN is not set")
+        raise Exception("No BOT_TOKEN")
     if not RAILWAY_PUBLIC_DOMAIN:
-        raise ValueError("RAILWAY_PUBLIC_DOMAIN is not set")
+        raise Exception("No DOMAIN")
 
-    print("BOT TOKEN LOADED:", bool(TOKEN))
-    print("HOME_ANIMATION EXISTS:", Path(HOME_ANIMATION).exists())
-    print("BUY_IMAGE EXISTS:", Path(BUY_IMAGE).exists())
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(buttons))
 
-    application = ApplicationBuilder().token(TOKEN).build()
+    await app.initialize()
+    await app.start()
 
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(buttons))
+    webhook = f"https://{RAILWAY_PUBLIC_DOMAIN}/webhook"
+    await app.bot.delete_webhook(drop_pending_updates=True)
+    await app.bot.set_webhook(webhook)
 
-    await application.initialize()
-    await application.start()
+    web_app = web.Application()
+    web_app["bot"] = app
+    web_app.router.add_post("/webhook", webhook_handler)
 
-    webhook_url = f"https://{RAILWAY_PUBLIC_DOMAIN}/telegram"
-    await application.bot.delete_webhook(drop_pending_updates=True)
-    await application.bot.set_webhook(webhook_url)
-
-    aio_app = web.Application()
-    aio_app["telegram_app"] = application
-    aio_app.router.add_get("/", health)
-    aio_app.router.add_post("/telegram", telegram_webhook)
-
-    runner = web.AppRunner(aio_app)
+    runner = web.AppRunner(web_app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
 
-    print("Webhook set:", webhook_url)
+    print("RUNNING:", webhook)
     await asyncio.Event().wait()
 
 
