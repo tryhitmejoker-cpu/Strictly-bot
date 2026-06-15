@@ -111,7 +111,7 @@ def get_buy_caption():
         "• All new and upcoming channels\n"
         "• Exclusive members-only channel\n"
         "• Full Strickly VIP folder (10 channels)\n\n"
-        "💰 Price: £15.00 (one-time)\n\n"
+        "💰 Price: £10.00 (one-time)\n\n"
         "⚡ Instant access after payment\n"
         "🔒 Secure checkout\n"
         "💳 Card accepted"
