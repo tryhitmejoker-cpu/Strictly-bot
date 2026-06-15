@@ -21,7 +21,7 @@ RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN")
 
 HOME_ANIMATION = "pika-video.mp4"
 BUY_IMAGE = "5A808E7F-E9B5-4E98-A0F0-FB9D46BD4182.png"
-PREVIEWS_URL = "https://t.me/+EM4JGufTMKE2OWRk"
+PREVIEWS_URL = "https://t.me/+Q2PPsfDdbkkzOTU8"
 SUPPORT_URL = "https://t.me/StricklySupportbot"
 REVIEWS_CHANNEL = "https://t.me/nuvouches"
 
@@ -119,7 +119,7 @@ def get_buy_caption():
 
 def buy_menu():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("💳 Buy Now", url="https://buy.stripe.com/aFadR2diP8qV67D5HY4gg0D")],
+        [InlineKeyboardButton("💳 Buy Now", url="https://buy.stripe.com/28E7sLac66C41VbcyFfjG00")],
         [InlineKeyboardButton("◀️ Back", callback_data="back_home")],
     ])
 
@@ -156,11 +156,11 @@ BASE_REVIEWS = [
     "Worth it 100%",
     "10/10 tbf",
     "Content is mad on here",
-    "Not gonna lie this is the best one I’ve joined",
+    "Not gonna lie this is the best one I've joined",
     "Joined yesterday already worth it",
     "Love this group so much content",
     "Actually legit surprised",
-    "Didn’t expect it to be this good",
+    "Didn't expect it to be this good",
     "Good group very good",
     "Unreal group",
     "Top tier content",
