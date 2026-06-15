@@ -14,6 +14,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
 )
+from telegram.request import HTTPXRequest
 
 TOKEN = os.getenv("BOT_TOKEN")
 PORT = int(os.getenv("PORT", "8080"))
@@ -352,7 +353,15 @@ async def main():
     print("HOME_ANIMATION EXISTS:", Path(HOME_ANIMATION).exists())
     print("BUY_IMAGE EXISTS:", Path(BUY_IMAGE).exists())
 
-    application = ApplicationBuilder().token(TOKEN).build()
+    request = HTTPXRequest(
+        connection_pool_size=8,
+        read_timeout=30,
+        write_timeout=30,
+        connect_timeout=30,
+        pool_timeout=30,
+    )
+
+    application = ApplicationBuilder().token(TOKEN).request(request).build()
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(buttons))
